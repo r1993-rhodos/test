@@ -1,13 +1,16 @@
 # Jacuzzi Serienummer Scanner
 
-Een web applicatie om met OCR jacuzzi serienummers te scannen via de camera.
+Een **Progressive Web App (PWA)** om met OCR jacuzzi serienummers te scannen via de camera.
 
 ## Functionaliteiten
 
-- Camera toegang om foto's te maken van serienummers
-- Automatische OCR (Optical Character Recognition) om serienummers uit foto's te halen
-- Invoervelden voor serienummer en klantnummer
-- Lokale opslag van ingevoerde gegevens
+- 📷 Camera toegang om foto's te maken van serienummers
+- 🤖 Automatische OCR (Optical Character Recognition) om serienummers uit foto's te halen
+- 📝 Invoervelden voor serienummer en klantnummer
+- 💾 Lokale opslag van ingevoerde gegevens
+- 📱 **Installeerbaar als app** op mobiel en desktop
+- ⚡ **Offline functionaliteit** via Service Worker
+- 🎨 Responsive design voor alle schermformaten
 
 ## Gebruik
 
@@ -69,14 +72,35 @@ Voor productie gebruik zou je dit kunnen uitbreiden met:
 - Database opslag
 - Gebruikers authenticatie
 
+## 🚀 Deployment als App
+
+**Zie [DEPLOYMENT.md](DEPLOYMENT.md) voor volledige deployment instructies!**
+
+De app kan gratis gehost worden op:
+- **Netlify** (aanbevolen) - drag & drop deployment
+- **Vercel** - GitHub integratie
+- **GitHub Pages** - direct vanuit je repository
+- **Firebase Hosting** - Google platform
+- Eigen server met HTTPS
+
+### Snelle Start:
+1. Genereer iconen met `generate-icons.html`
+2. Deploy naar een hosting platform (zie DEPLOYMENT.md)
+3. Open de URL op je telefoon
+4. Voeg toe aan home screen = instant app!
+
 ## Bestandsstructuur
 
 ```
 .
-├── index.html      # Hoofd HTML bestand met UI
-├── app.js          # JavaScript logica en OCR functionaliteit
-├── styles.css      # Styling en responsive design
-└── README.md       # Deze documentatie
+├── index.html              # Hoofd HTML bestand met UI
+├── app.js                  # JavaScript logica en OCR functionaliteit
+├── styles.css              # Styling en responsive design
+├── manifest.json           # PWA manifest voor installatie
+├── service-worker.js       # Service worker voor offline functionaliteit
+├── generate-icons.html     # Tool om app iconen te genereren
+├── README.md               # Deze documentatie
+└── DEPLOYMENT.md           # Volledige deployment handleiding
 ```
 
 ## Mobiel Gebruik
