@@ -1,77 +1,104 @@
-const CACHE_NAME = 'jacuzzi-scanner-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+// ============================================
+// Jacuzzi Scanner Service Worker
+// ============================================
+
+const CACHE_NAME = 'jacuzzi-scanner-v2';
+const STATIC_CACHE = 'jacuzzi-static-v2';
+
+const STATIC_ASSETS = [
+    '/',
+    '/index.html',
+    '/styles.css',
+    '/app.js',
+    '/manifest.json'
 ];
 
-// Install event - cache resources
+// Install - cache static assets
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Cache opened');
-        return cache.addAll(urlsToCache.filter(url => {
-          // Skip icon files if they don't exist yet
-          return !url.includes('.png');
-        }));
-      })
-      .catch((error) => {
-        console.log('Cache install error:', error);
-      })
-  );
-});
-
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        return fetch(event.request).then((response) => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME)
+    event.waitUntil(
+        caches.open(STATIC_CACHE)
             .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+                console.log('Caching static assets');
+                return cache.addAll(STATIC_ASSETS);
+            })
+            .then(() => self.skipWaiting())
+    );
+});
 
-          return response;
-        });
-      })
-      .catch(() => {
-        // Return a custom offline page if needed
-        return caches.match('/index.html');
-      })
-  );
+// Activate - cleanup old caches
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames
+                    .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE)
+                    .map((name) => {
+                        console.log('Deleting old cache:', name);
+                        return caches.delete(name);
+                    })
+            );
+        }).then(() => self.clients.claim())
+    );
+});
+
+// Fetch - cache first, then network
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    const url = new URL(request.url);
+
+    // Skip non-GET requests
+    if (request.method !== 'GET') return;
+
+    // Skip cross-origin requests except for CDN
+    if (url.origin !== location.origin && !url.href.includes('cdn.jsdelivr.net')) {
+        return;
+    }
+
+    event.respondWith(
+        caches.match(request).then((cachedResponse) => {
+            // Return cached response if available
+            if (cachedResponse) {
+                // Update cache in background (stale-while-revalidate)
+                event.waitUntil(
+                    fetch(request)
+                        .then((response) => {
+                            if (response.ok) {
+                                caches.open(CACHE_NAME).then((cache) => {
+                                    cache.put(request, response);
+                                });
+                            }
+                        })
+                        .catch(() => {})
+                );
+                return cachedResponse;
+            }
+
+            // Fetch from network
+            return fetch(request)
+                .then((response) => {
+                    // Cache valid responses
+                    if (response.ok) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(request, responseClone);
+                        });
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    // Return offline page for navigation requests
+                    if (request.mode === 'navigate') {
+                        return caches.match('/index.html');
+                    }
+                    return new Response('Offline', { status: 503 });
+                });
+        })
+    );
+});
+
+// Handle messages from main app
+self.addEventListener('message', (event) => {
+    if (event.data === 'skipWaiting') {
+        self.skipWaiting();
+    }
 });

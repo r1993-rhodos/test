@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Scan jacuzzi serienummers met OCR technologie">
     <meta name="theme-color" content="#667eea">
 
@@ -17,97 +17,206 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <!-- Inline SVG Icons voor betere PWA ondersteuning -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23667eea'/><stop offset='100%25' stop-color='%23764ba2'/></linearGradient></defs><rect fill='url(%23g)' width='100' height='100' rx='20'/><text x='50' y='62' text-anchor='middle' font-size='50'>📷</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23667eea'/><stop offset='100%25' stop-color='%23764ba2'/></linearGradient></defs><rect fill='url(%23g)' width='100' height='100' rx='20'/><text x='50' y='62' text-anchor='middle' font-size='50'>📷</text></svg>">
 
     <link rel="stylesheet" href="styles.css">
-    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 </head>
 <body>
     <div class="container">
-        <h1>Jacuzzi Serienummer Scanner</h1>
+        <header class="app-header">
+            <h1>Jacuzzi Scanner</h1>
+            <button id="historyBtn" class="icon-btn" title="Geschiedenis">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                </svg>
+            </button>
+        </header>
 
-        <div class="card">
-            <h2>Scan Serienummer</h2>
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="scan">Scannen</button>
+            <button class="tab-btn" data-tab="history">Geschiedenis</button>
+        </nav>
 
-            <!-- Camera Section -->
-            <div class="camera-section">
-                <video id="camera" autoplay playsinline></video>
-                <canvas id="canvas" style="display: none;"></canvas>
+        <!-- Scan Tab -->
+        <div id="scanTab" class="tab-content active">
+            <div class="card">
+                <!-- Camera Section -->
+                <div class="camera-section">
+                    <div class="camera-container">
+                        <video id="camera" autoplay playsinline></video>
+                        <canvas id="canvas"></canvas>
 
-                <div class="button-group">
-                    <button id="startCamera" class="btn btn-primary">
-                        📷 Start Camera
-                    </button>
-                    <button id="captureBtn" class="btn btn-success" style="display: none;">
-                        📸 Maak Foto
-                    </button>
-                    <button id="stopCamera" class="btn btn-secondary" style="display: none;">
-                        ⏹ Stop Camera
-                    </button>
+                        <!-- Camera Overlay Guide -->
+                        <div id="cameraOverlay" class="camera-overlay">
+                            <div class="scan-guide">
+                                <div class="scan-frame"></div>
+                                <p>Plaats het serienummer in het kader</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Controls -->
+                    <div class="camera-controls">
+                        <button id="startCamera" class="btn btn-primary btn-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            Start Camera
+                        </button>
+
+                        <div id="activeCameraControls" class="active-controls" style="display: none;">
+                            <button id="switchCamera" class="btn btn-secondary btn-icon" title="Wissel camera">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+                                    <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
+                                    <polyline points="16,3 19,6 16,9"/>
+                                    <polyline points="8,15 5,18 8,21"/>
+                                </svg>
+                            </button>
+                            <button id="toggleFlash" class="btn btn-secondary btn-icon" title="Flash aan/uit">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+                                </svg>
+                            </button>
+                            <button id="captureBtn" class="btn btn-success btn-capture">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="12" cy="12" r="10"/>
+                                </svg>
+                            </button>
+                            <button id="stopCamera" class="btn btn-secondary btn-icon" title="Stop camera">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Preview Section -->
-            <div id="previewSection" style="display: none;">
-                <h3>Gemaakte Foto</h3>
-                <img id="preview" alt="Preview">
-                <button id="retakeBtn" class="btn btn-secondary">
-                    🔄 Nieuwe Foto
-                </button>
-            </div>
-
-            <!-- OCR Progress -->
-            <div id="ocrProgress" style="display: none;">
-                <div class="progress-bar">
-                    <div id="progressBar" class="progress-fill"></div>
-                </div>
-                <p id="ocrStatus">OCR wordt uitgevoerd...</p>
-            </div>
-
-            <!-- Form Section -->
-            <div class="form-section">
-                <h2>Gegevens</h2>
-
-                <div class="form-group">
-                    <label for="serialNumber">Serienummer</label>
-                    <input
-                        type="text"
-                        id="serialNumber"
-                        placeholder="Automatisch gevuld via OCR"
-                        class="form-input">
+                <!-- Preview Section -->
+                <div id="previewSection" class="preview-section" style="display: none;">
+                    <div class="preview-header">
+                        <h3>Gemaakte Foto</h3>
+                        <button id="retakeBtn" class="btn btn-secondary btn-small">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="1,4 1,10 7,10"/>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                            </svg>
+                            Opnieuw
+                        </button>
+                    </div>
+                    <img id="preview" alt="Preview">
                 </div>
 
-                <div class="form-group">
-                    <label for="customerNumber">Klantnummer</label>
-                    <input
-                        type="text"
-                        id="customerNumber"
-                        placeholder="Voer klantnummer in"
-                        class="form-input">
+                <!-- OCR Progress -->
+                <div id="ocrProgress" class="ocr-progress" style="display: none;">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div id="progressBar" class="progress-fill"></div>
+                        </div>
+                        <span id="progressText">0%</span>
+                    </div>
+                    <p id="ocrStatus">OCR wordt gestart...</p>
                 </div>
 
-                <button id="submitBtn" class="btn btn-primary btn-large">
-                    ✅ Opslaan
-                </button>
-            </div>
+                <!-- Form Section -->
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="serialNumber">
+                            Serienummer
+                            <span id="ocrBadge" class="badge" style="display: none;">OCR</span>
+                        </label>
+                        <div class="input-with-action">
+                            <input
+                                type="text"
+                                id="serialNumber"
+                                placeholder="Scan of voer handmatig in"
+                                class="form-input"
+                                autocomplete="off"
+                                spellcheck="false">
+                            <button id="clearSerial" class="clear-btn" title="Wissen">×</button>
+                        </div>
+                        <small id="serialHint" class="form-hint"></small>
+                    </div>
 
-            <!-- Result Section -->
-            <div id="resultSection" style="display: none;">
-                <div class="result-box">
-                    <h3>✅ Gegevens Opgeslagen</h3>
-                    <p><strong>Serienummer:</strong> <span id="savedSerial"></span></p>
-                    <p><strong>Klantnummer:</strong> <span id="savedCustomer"></span></p>
-                    <button id="newEntryBtn" class="btn btn-secondary">
-                        Nieuwe Invoer
+                    <div class="form-group">
+                        <label for="customerNumber">Klantnummer</label>
+                        <div class="input-with-action">
+                            <input
+                                type="text"
+                                id="customerNumber"
+                                placeholder="Voer klantnummer in"
+                                class="form-input"
+                                autocomplete="off">
+                            <button id="clearCustomer" class="clear-btn" title="Wissen">×</button>
+                        </div>
+                    </div>
+
+                    <button id="submitBtn" class="btn btn-primary btn-large">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20,6 9,17 4,12"/>
+                        </svg>
+                        Opslaan
                     </button>
                 </div>
             </div>
         </div>
+
+        <!-- History Tab -->
+        <div id="historyTab" class="tab-content">
+            <div class="card">
+                <div class="history-header">
+                    <h2>Geschiedenis</h2>
+                    <div class="history-actions">
+                        <button id="exportCSV" class="btn btn-secondary btn-small">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7,10 12,15 17,10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Export CSV
+                        </button>
+                        <button id="clearHistory" class="btn btn-danger btn-small">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3,6 5,6 21,6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Wissen
+                        </button>
+                    </div>
+                </div>
+
+                <div id="historyList" class="history-list">
+                    <p class="empty-state">Nog geen gescande items</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Toast -->
+        <div id="toast" class="toast"></div>
     </div>
 
+    <!-- Tesseract.js laden met lazy loading -->
+    <script>
+        // Lazy load Tesseract.js alleen wanneer nodig
+        window.loadTesseract = function() {
+            return new Promise((resolve, reject) => {
+                if (window.Tesseract) {
+                    resolve(window.Tesseract);
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                script.onload = () => resolve(window.Tesseract);
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        };
+    </script>
     <script src="app.js"></script>
 </body>
 </html>
